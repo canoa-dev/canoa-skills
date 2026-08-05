@@ -1,7 +1,7 @@
 ---
 name: canoa-api
 description: Use when researching ancient coins via the CANOA API.
-version: 1.0.0
+version: 1.0.1
 author: CANOA (canoanumis.org)
 license: CC BY 4.0
 platforms: [linux, macos, windows]
@@ -12,86 +12,86 @@ metadata:
     related_skills: [arxiv, open-access-papers]
 ---
 
-# CANOA API — как пользоваться (нумизматика, история, образование)
+# CANOA API — how to use (numismatics, history, education)
 
-CANOA (https://canoanumis.org) — открытый корпус монет древнего мира: Греция, Рим, Персия, Карфаген, Византия.
-Объём: ~128 500 типов монет, 540 000+ музейных экземпляров, 9 833 клада, 17 074 штемпеля, 2 600+ монетных дворов.
-Данные типов — ODbL (источник numismatics.org); изображения принадлежат музеям-держателям (многие — только некоммерческое использование с атрибуцией). Перед публикацией результатов проверяй /LICENSES.md и лицензию конкретной коллекции.
+CANOA (https://canoanumis.org) is an open corpus of ancient world coinage: Greece, Rome, Persia, Carthage, Byzantium and more.
+Scale: ~128,500 coin types, 540,000+ museum specimens, 9,833 hoards, 17,074 dies, 2,600+ mints.
+Type data — ODbL (source numismatics.org); images belong to the holding museums (many allow non-commercial use only, with attribution). Before publishing results, check /LICENSES.md and the license of the specific collection.
 
-## Когда использовать
-- Поиск монет по правителю, двору, номиналу, металлу, периоду, датасету
-- Карточка конкретного типа монеты (легенды, описание, датировка, метрология)
-- Списки/статистика для статей, уроков, докладов, научных работ
-- Построение карт монетных дворов (GeoJSON)
+## When to use
+- Find coins by ruler, mint, denomination, metal, period, dataset
+- Get the card of a specific coin type (legends, description, dating, metrology)
+- Build lists/statistics for articles, lessons, reports, research papers
+- Build maps of mints (GeoJSON)
 
-## Эндпоинты (все — GET, JSON, без ключа)
+## Endpoints (all — GET, JSON, no key)
 
-| Эндпоинт | Что даёт |
+| Endpoint | Returns |
 |---|---|
-| `/api/search?q=<текст>` | автодополнение: правители, дворы, номиналы, монеты |
-| `/api/coins` | список монет с фильтрами (см. ниже) |
-| `/api/coins/<slug>/` | карточка монеты (например `/api/coins/ric-i-second-edition-nero-1/`) |
-| `/api/coin/<id>/` | карточка по числовому id |
-| `/api/filter-options?field=mint` | справочные значения фильтров (mint, authority, denomination, material) |
-| `/api/mints.geojson` | монетные дворы в GeoJSON (фильтры: authority, denomination, material, dataset, q, has_coins) |
-| `/llms.txt`, `/llms-full.txt` | документация для LLM/агентов |
-| `/LICENSES.md` | лицензии по коллекциям |
+| `/api/search?q=<text>` | autocomplete: rulers, mints, denominations, coins |
+| `/api/coins` | coin list with filters (see below) |
+| `/api/coins/<slug>/` | coin card (e.g. `/api/coins/ric-i-second-edition-nero-1/`) |
+| `/api/coin/<id>/` | card by numeric id |
+| `/api/filter-options?field=mint` | filter reference values (mint, authority, denomination, material) |
+| `/api/mints.geojson` | mints as GeoJSON (filters: authority, denomination, material, dataset, q, has_coins) |
+| `/llms.txt`, `/llms-full.txt` | documentation for LLM/agents |
+| `/LICENSES.md` | per-collection licenses |
 
-### Фильтры /api/coins
-- `q` — текст (токены AND по названию, каталожному номеру, легендам)
-- `authority`, `denomination`, `material` — **URI** nomisma.org, напр. `http://nomisma.org/id/nero`
-- `mint` — **числовой id** (не slug! брать из `/api/filter-options?field=mint`)
+### /api/coins filters
+- `q` — free text (AND tokens over label, catalog number, legends)
+- `authority`, `denomination`, `material` — **URIs** from nomisma.org, e.g. `http://nomisma.org/id/nero`
+- `mint` — **numeric id** (not slug! get it from `/api/filter-options?field=mint`)
 - `dataset` — ocre, crro, pella, iris, sco, pco, bigr, agco, aod, lco, coi, cm, do_byzant, oscar, chre, chrr, coinhoards, iacb
-- `has_image` — `1` (только с фото) / `0` (все)
-- `date_from`, `date_to` — годы: монеты, чей период пересекает диапазон (отрицательные = до н.э.)
+- `has_image` — `1` (with photos only) / `0` (all)
+- `date_from`, `date_to` — years: coins whose period overlaps the range (negative = BC)
 - `sort` — name, -name, date, -date
-- `page`, `per_page` — пагинация (per_page максимум 100)
-- `format=html` — тот же список простым HTML (для ссылок без JS)
+- `page`, `per_page` — pagination (per_page max 100)
+- `format=html` — the same list as plain HTML (for JS-free linking)
 
-## Быстрые примеры
+## Quick examples
 
 ```bash
-# Монеты Нерона из Рима (id двора 36):
+# Coins of Nero struck in Rome (mint id 36):
 curl "https://canoanumis.org/api/coins?authority=http://nomisma.org/id/nero&mint=36&per_page=100"
 
-# Монеты Рима 54–68 гг. н.э. (период):
+# Coins of Rome 54–68 AD (period):
 curl "https://canoanumis.org/api/coins?date_from=54&date_to=68&mint=36"
 
-# Только с фото:
+# With photos only:
 curl "https://canoanumis.org/api/coins?q=denarius&has_image=1&sort=date&per_page=50"
 
-# Карточка монеты:
+# Coin card:
 curl "https://canoanumis.org/api/coins/ric-i-second-edition-nero-63/"
 
-# Значения фильтров (id дворов, URI правителей):
+# Filter reference values (mint ids, ruler URIs):
 curl "https://canoanumis.org/api/filter-options?field=mint"
 curl "https://canoanumis.org/api/filter-options?field=authority"
 
-# Автодополнение:
+# Autocomplete:
 curl "https://canoanumis.org/api/search?q=trajan"
 
-# Дворы в GeoJSON (для карт):
+# Mints as GeoJSON (for maps):
 curl "https://canoanumis.org/api/mints.geojson?has_coins=1"
 ```
 
-## Рецепты
+## Recipes
 
-### 1. Для детей и школ (просто и наглядно)
-- `/api/search?q=<имя>` — найти правителя (тип `ruler`, url ведёт в каталог)
-- `/api/coins?q=<имя>&has_image=1&format=html` — страница с картинками без программирования
-- Задание: «найди 5 монет Нерона с фото, укажи их каталожные номера»
+### 1. For kids and schools (simple and visual)
+- `/api/search?q=<name>` — find a ruler (type `ruler`, url leads to the catalog)
+- `/api/coins?q=<name>&has_image=1&format=html` — a page with pictures, no programming needed
+- Exercise: "find 5 coins of Nero with photos and give their catalog numbers"
 
-### 2. Для любителей: подборка «золото Рима II века»
+### 2. For hobbyists: "gold of Rome in the 2nd century"
 ```python
 import urllib.request, json
 url = "https://canoanumis.org/api/coins?material=http://nomisma.org/id/av&date_from=96&date_to=192&per_page=100"
 data = json.load(urllib.request.urlopen(url))
 for c in data["results"]:
     print(c["ocre_id"], "|", c["label"], "|", c["mint"], "|", c["date_from"], "-", c["date_to"])
-print("всего:", data["count"])
+print("total:", data["count"])
 ```
 
-### 3. Для исследователя: экспорт в CSV
+### 3. For researchers: export to CSV
 ```python
 import urllib.request, json, csv
 def fetch(page):
@@ -104,29 +104,29 @@ with open("nero_coins.csv", "w", newline="") as f:
     for page in range(1, first["num_pages"] + 1):
         for c in fetch(page)["results"]:
             w.writerow([c["ocre_id"], c["label"], c["mint"], c["date_from"], c["date_to"], c["url"]])
-print("экспортировано:", first["count"])
+print("exported:", first["count"])
 ```
-- Отрицательные `date_from/date_to` = годы до н.э. (напр. -27 = 27 г. до н.э.)
-- `label_ru` в ответах — русские метки (материал/номинал/правитель) для русскоязычных публикаций
+- Negative `date_from/date_to` = years BC (e.g. -27 = 27 BC)
+- `label_ru` fields in responses — Russian labels (material/denomination/ruler) for Russian-language publications
 
-### 4. Цитирование и лицензии (обязательно для публикаций)
-- Типы/данные: ODbL 1.0 — указывай источник CANOA (canoanumis.org) и numismatics.org
-- Изображения: © музей-держатель, лицензия коллекции — в /LICENSES.md (многие — NC, только некоммерчески)
-- Стандартная атрибуция: «Данные: CANOA (canoanumis.org), ODbL; изображение: © <музей>»
+### 4. Citation and licenses (required for publications)
+- Types/data: ODbL 1.0 — credit CANOA (canoanumis.org) and numismatics.org
+- Images: © holding museum, collection license in /LICENSES.md (many are NC — non-commercial only)
+- Standard attribution: "Data: CANOA (canoanumis.org), ODbL; image: © <museum>"
 
-## Ловушки
-- `mint` в фильтрах — числовой id, не slug (slug только в URL /mints/<slug>/)
-- `authority/denomination/material` — полные URI nomisma.org, а не короткие имена
-- per_page максимум 100 — для полной выборки итерируй по страницам (num_pages в ответе)
-- Изображения — отдельные URL (image в /api/coins, obverse_image/reverse_image в карточке); часть источников утрачена (Gallica/PAS) — у таких монет image отсутствует, это не ошибка
-- Закрытые коллекции (abc_exemplars, rutgers, ashm_ocre, ashm_pella) в API не отдаются
-- Не долби API пачками — вежливость: паузы между запросами при больших выборках
-- /search/ кэшируется 60 с — после изменения фильтров возможна задержка обновления
+## Pitfalls
+- `mint` filter takes a numeric id, not a slug (slug only in /mints/<slug>/ URLs)
+- `authority/denomination/material` — full nomisma.org URIs, not short names
+- per_page max 100 — iterate pages for full dumps (num_pages in the response)
+- Images are separate URLs (image in /api/coins, obverse_image/reverse_image in the card); some sources are lost (Gallica/PAS) — such coins have no image, that is not an error
+- Restricted collections (abc_exemplars, rutgers, ashm_ocre, ashm_pella) are not exposed via the API
+- Be polite: pause between requests for large dumps
+- /search/ is cached for 60 s — filter updates may lag briefly
 
-## Проверка
+## Verification
 ```bash
 curl -s "https://canoanumis.org/api/search?q=nero" | head -c 400
 curl -s "https://canoanumis.org/api/coins/ric-i-second-edition-nero-63/" | head -c 400
 curl -s -o /dev/null -w "%{http_code}\n" "https://canoanumis.org/api/coins?per_page=1"
 ```
-Ожидаемо: HTTP 200, корректный JSON, поле `count` в списках (для проверки структуры сохрани ответ в файл и открой его отдельно, без конвейера в интерпретатор).
+Expected: HTTP 200, valid JSON, `count` field in lists (to inspect the structure, save the response to a file and open it separately, without piping into an interpreter).
