@@ -1,5 +1,9 @@
 # CANOA Skills
 
+[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
+[![Skills Hub](https://img.shields.io/badge/Skills%20Hub-canoa--api-blue)](https://skills.sh/canoa-dev/canoa-skills/skills/canoa-api)
+[![Site](https://img.shields.io/badge/CANOA-canoanumis.org-darkblue)](https://canoanumis.org)
+
 Open skills for working with **CANOA — Corpus Apertum Nummorum Orbis Antiqui**
 (https://canoanumis.org), an open corpus of ancient world coinage: Greece, Rome,
 Persia, Carthage, Byzantium and more.
@@ -61,6 +65,33 @@ Full endpoint reference and recipes are inside
 - This skill itself — **CC BY 4.0** (see [LICENSE](LICENSE))
 
 When publishing results, credit: *Data: CANOA (canoanumis.org), ODbL; image: © &lt;museum&gt;*.
+
+## Source projects and data
+
+CANOA aggregates data from the numismatics.org ecosystem and museum collections.
+
+**Our forks**
+
+- [`canoa-dev/nomisma-symbol-svg`](https://github.com/canoa-dev/nomisma-symbol-svg) — fork of [`nomisma/symbol-svg`](https://github.com/nomisma/symbol-svg), SVG images for symbols (primarily monograms) related to coinage
+- [`canoa-dev/nomisma_raw`](https://github.com/canoa-dev/nomisma_raw) — fork of [`nomisma/data`](https://github.com/nomisma/data), Nomisma ID text fragments for the wiki
+
+**Upstream nomisma.org projects (GitHub)**
+
+- [`nomisma/symbol-svg`](https://github.com/nomisma/symbol-svg) — SVG images for coinage symbols and monograms
+- [`nomisma/data`](https://github.com/nomisma/data) — Nomisma ID text fragments
+- [`nomisma/site`](https://github.com/nomisma/site) — nomisma.org website (Jekyll)
+- [`nomisma/framework`](https://github.com/nomisma/framework) — nomisma.org framework
+- [`nomisma/scripts`](https://github.com/nomisma/scripts) — data migration and maintenance scripts
+
+**Numismatics.org data projects (sources of the corpus)**
+
+- [OCRE — Online Coins of the Roman Empire](https://numismatics.org/ocre/)
+- [CRRO — Coinage of the Roman Republic Online](https://numismatics.org/crro/)
+- [PELLA — coinage of Macedon](https://numismatics.org/pella/)
+- [SCO — Seleucid Coins Online](https://numismatics.org/sco/), [PCO — Ptolemaic Coins Online](https://numismatics.org/pco/), [BIGR](https://numismatics.org/bigr/), [AGCO](https://numismatics.org/agco/), [AOD](https://numismatics.org/aod/), [LCO](https://numismatics.org/lco/), [COI](https://numismatics.org/coi/), [CM — Renaissance Medals Online](https://numismatics.org/cm/), [OSCAR](https://numismatics.org/oscar/)
+- [Nomisma.org](https://nomisma.org) — controlled vocabulary for numismatic concepts
+
+RDF data dumps are published at [numismatics.org/rdf/](https://numismatics.org/rdf/). Museum specimen images come from the holding collections (British Museum, BnF, CN, Fitzwilliam, Dumbarton Oaks, and others — see [LICENSES.md](https://canoanumis.org/LICENSES.md)).
 
 ## Contributing
 
