@@ -1,7 +1,7 @@
 ---
 name: canoa-api
 description: Use when researching ancient coins via the CANOA API.
-version: 1.0.4
+version: 1.0.5
 author: CANOA (canoanumis.org)
 license: CC BY 4.0
 platforms: [linux, macos, windows]
@@ -124,6 +124,7 @@ print("exported:", first["count"])
 - per_page max 100 — iterate pages for full dumps (num_pages in the response)
 - Images: the API returns `image` / `obverse_image` / `reverse_image` only for files that actually exist. For lost sources (Gallica, PAS) the fields are empty strings — do not fetch dead URLs (404s pollute your crawl)
 - Banners (for third-party sites): `/banner/<slug>/` (preview + HTML/Markdown/BB-code embed codes) and PNG files `/banner/<slug>/<WxH>.png` / `<WxH>-light.png` (sizes 970x90, 728x90, 468x60, 320x100, 320x50; dark/light themes; `Cache-Control: max-age=86400`). Banner pages are not in the sitemap — do not index them
+- CANOA Edu (/edu/): school section with LTI 1.3 assignments (Canvas/Schoology/Moodle). PUBLIC and indexable: /edu/, /edu/how-it-works/, /edu/demo/, /edu/legal/privacy/. CLOSED to automated access (anti-cheating; only via an LTI session from an LMS — never crawl): /edu/assignment/*, /edu/my/, /edu/teacher/*, /edu/lti/*. LTI JWKS: /edu/.well-known/jwks.json. No student personal data is stored (opaque sub only); coin images are never copied by the Edu module
 - Restricted collections (abc_exemplars, rutgers, ashm_ocre, ashm_pella) are not exposed via the API
 - Be polite: pause between requests for large dumps
 - /search/ is cached for 60 s — filter updates may lag briefly
