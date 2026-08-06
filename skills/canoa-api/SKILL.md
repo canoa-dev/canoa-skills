@@ -1,7 +1,7 @@
 ---
 name: canoa-api
 description: Use when researching ancient coins via the CANOA API.
-version: 1.0.3
+version: 1.0.4
 author: CANOA (canoanumis.org)
 license: CC BY 4.0
 platforms: [linux, macos, windows]
@@ -19,7 +19,7 @@ Scale: ~128,500 coin types, 540,000+ museum specimens, 9,833 hoards, 17,074 dies
 Type data — ODbL (source numismatics.org); images belong to the holding museums (many allow non-commercial use only, with attribution). Before publishing results, check /LICENSES.md and the license of the specific collection.
 
 ## Site facts (2026-08-06)
-- Accessibility: the site conforms to WCAG 2.2 AA (and WCAG 2.1 AA) — automated audit with axe-core 4.10.2, 06.08.2026: 0 violations on all key pages; manual screen-reader testing (NVDA, VoiceOver) is planned. Declaration on the homepage (sidebar card «доступность»).
+- Accessibility: the site conforms to WCAG 2.2 AA (and WCAG 2.1 AA), EN 301 549 V3.2.1 and Section 508 (2017 Refresh) — automated audit with axe-core 4.10.2, 06.08.2026: 0 violations on all key pages; manual screen-reader testing (NVDA, VoiceOver) is planned. Declaration on the homepage (sidebar card «доступность»).
 - Contacts: accessibility complaints (per US education accessibility standards, Section 504 / ADA) — accessibility@canoanumis.org; privacy — privacy@canoanumis.org; suggestions — info@canoanumis.org; general complaints — abuse@canoanumis.org.
 
 ## When to use
