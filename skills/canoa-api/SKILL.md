@@ -1,7 +1,7 @@
 ---
 name: canoa-api
 description: Use when researching ancient coins via the CANOA API.
-version: 1.0.1
+version: 1.0.2
 author: CANOA (canoanumis.org)
 license: CC BY 4.0
 platforms: [linux, macos, windows]
@@ -118,7 +118,8 @@ print("exported:", first["count"])
 - `mint` filter takes a numeric id, not a slug (slug only in /mints/<slug>/ URLs)
 - `authority/denomination/material` — full nomisma.org URIs, not short names
 - per_page max 100 — iterate pages for full dumps (num_pages in the response)
-- Images are separate URLs (image in /api/coins, obverse_image/reverse_image in the card); some sources are lost (Gallica/PAS) — such coins have no image, that is not an error
+- Images: the API returns `image` / `obverse_image` / `reverse_image` only for files that actually exist. For lost sources (Gallica, PAS) the fields are empty strings — do not fetch dead URLs (404s pollute your crawl)
+- Banners (for third-party sites): `/banner/<slug>/` (preview + HTML/Markdown/BB-code embed codes) and PNG files `/banner/<slug>/<WxH>.png` / `<WxH>-light.png` (sizes 970x90, 728x90, 468x60, 320x100, 320x50; dark/light themes; `Cache-Control: max-age=86400`). Banner pages are not in the sitemap — do not index them
 - Restricted collections (abc_exemplars, rutgers, ashm_ocre, ashm_pella) are not exposed via the API
 - Be polite: pause between requests for large dumps
 - /search/ is cached for 60 s — filter updates may lag briefly
