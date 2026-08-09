@@ -1,10 +1,10 @@
 ---
 name: canoa-hoard-analysis
 description: Use when analyzing coin hoards of a region, charts and PDF.
-version: 1.1.0
+version: 2.0.0
 author: CANOA (canoanumis.org)
 license: CC BY 4.0
-platforms: [linux]
+platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [numismatics, hoards, analysis, charts, pdf, canoa]
@@ -16,37 +16,129 @@ metadata:
 
 Iterate over all hoards found in one region (bounding box by coordinates), count
 the distribution of coins by emperors/rulers and periods, build charts, generate
-a PDF article. Working environment — /home/kali/numismatics (Django ORM).
+a PDF article. **Data comes from the public CANOA API** (https://canoanumis.org)
+— no database access or server credentials needed; works from any machine.
 
 ## When to use
 - "analyze the hoards of Sicily/Britain/Lusitania…"
 - "build the coin distribution by emperors for hoards of a region"
 - "make a PDF article/report on the hoards of an area"
 
+## API endpoints (all GET, JSON, no key)
+
+| Endpoint | Returns |
+|---|---|
+| `/api/hoards?lat_min=&lat_max=&lon_min=&lon_max=` | hoard list in a bounding box (+ `q` label search, `dataset` filter, `page`/`per_page` max 100) |
+| `/api/hoards/<id>/` | hoard detail: findspot, coordinates, `coin_types[]` with `authority`, `mint`, `date_from`, `date_to` |
+
+API base: `https://canoanumis.org`. Examples:
+```bash
+curl "https://canoanumis.org/api/hoards?lat_min=36.5&lat_max=38.5&lon_min=12.0&lon_max=16.0"
+curl "https://canoanumis.org/api/hoards/26394/"
+```
+
 ## Usage
 
 User request → agent actions:
 
 1. **User**: "analyze the hoards of Sicily" →
-   Agent: resolves the Sicily bbox (lat 36.5–38.5, lon 12.0–16.0), runs the
-   ORM script (step 2), aggregates (step 3), builds charts (step 4), returns a
-   chat summary. PDF only on explicit request ("make an article/PDF").
+   Agent: resolves the Sicily bbox (lat 36.5–38.5, lon 12.0–16.0), fetches
+   `/api/hoards?lat_min=36.5&lat_max=38.5&lon_min=12&lon_max=16`, then each
+   hoard detail, aggregates (step 2), builds charts (step 3), returns a chat
+   summary. PDF only on explicit request ("make an article/PDF").
 
 2. **User**: "make a PDF article on the hoards of Britain" →
    Agent: Southern Britain bbox (lat 50.0–52.0, lon -5.0–1.5), full pipeline
-   up to PDF (steps 2–5), file /tmp/article.pdf + path in the answer.
+   up to PDF (steps 1–4), file path in the answer.
 
 3. **User**: "build the coin distribution by emperors for hoards of a region" →
-   Agent: clarifies the region (bbox), aggregates by authority; if the share
-   of "no ruler" is >50% — warns and builds by mint instead.
+   Agent: clarifies the region (bbox), aggregates by `authority`; if the share
+   of "no ruler" is >50% — warns and builds by `mint` instead.
 
 4. **User**: "how many hoards were found in Gaul and what is in them" →
    Agent: Gaul bbox (lat 43.0–51.0, lon -5.0–8.0), summary: hoard count,
    coin type count, top periods/rulers/mints, top hoards as a table.
 
-Action order is always: bbox → hoard selection → aggregation → (charts) →
-(article). Chat result — a concise summary with numbers; PDF and PNG — as files
-with absolute paths (CLI client, files are read by path).
+Action order is always: bbox → `/api/hoards` list → `/api/hoards/<id>/` detail
+per hoard → aggregation → (charts) → (article). Chat result — a concise summary
+with numbers; PNG and PDF — as files with absolute paths (CLI client).
+
+## Steps
+
+### 1. Fetch hoards of the region
+Known bboxes:
+- Sicily: lat 36.5–38.5, lon 12.0–16.0 (21 hoards)
+- Southern Britain: lat 50.0–52.0, lon -5.0–1.5
+- Lusitania (Portugal): lat 37.0–42.0, lon -10.0–-6.0
+- Gaul: lat 43.0–51.0, lon -5.0–8.0
+
+```bash
+curl -s "https://canoanumis.org/api/hoards?lat_min=36.5&lat_max=38.5&lon_min=12&lon_max=16&per_page=100"
+```
+Response: `{"count": 21, "results": [{"id", "label", "dataset", "findspot",
+"latitude", "longitude", "coin_count", "type_count", ...}]}`. If `count` >
+`per_page` — iterate pages (`&page=2`).
+
+### 2. Fetch each hoard detail and aggregate
+For every hoard id fetch `/api/hoards/<id>/` and accumulate `coin_types[]`:
+```python
+import urllib.request, json, collections
+API = "https://canoanumis.org"
+hoards = json.load(urllib.request.urlopen(API + "/api/hoards?lat_min=36.5&lat_max=38.5&lon_min=12&lon_max=16"))["results"]
+au = collections.Counter(); per = collections.Counter(); mints = collections.Counter()
+total = 0; no_authority = 0
+for h in hoards:
+    d = json.load(urllib.request.urlopen(f"{API}/api/hoards/{h['id']}/"))
+    for ct in d["coin_types"]:
+        total += 1
+        if ct["authority"]: au[ct["authority"]] += 1
+        else: no_authority += 1
+        if ct["mint"]: mints[ct["mint"]] += 1
+        if ct["date_from"] is not None:
+            y = ct["date_from"]
+            if y < -509: per["Archaic (before 500 BC)"] += 1
+            elif y < -400: per["Classical (500–400 BC)"] += 1
+            elif y < -300: per["Late Classical (400–300 BC)"] += 1
+            elif y < -27: per["Hellenistic (300–27 BC)"] += 1
+            elif y < 476: per["Roman era (27 BC–476 AD)"] += 1
+            else: per["Byzantine/Medieval (after 476 AD)"] += 1
+```
+Politeness: pause ~0.3–0.5 s between detail requests (hoard count is small —
+tens of hoards per region; total coin types per region ~100–1000).
+
+### 3. Charts — system matplotlib
+```bash
+python3 -c "
+import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+..."
+```
+Charts: (1) top-15 rulers or mints (horizontal bar; if `no_authority/total >
+0.5` — use mints instead of rulers), (2) periods (bar with share % labels),
+(3) optional scatter of hoards by coordinates (size = type_count from the list
+response — already present, no extra requests). Save PNG 150 dpi. For Cyrillic
+labels: `plt.rcParams['font.family'] = 'DejaVu Sans'`.
+
+### 4. PDF article — headless Chromium
+reportlab/weasyprint/wkhtmltopdf are NOT assumed installed. Portable path —
+HTML + Chromium (if present) or any local PDF tool:
+```bash
+cat > /tmp/article.html <<'EOF'
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>body{font-family:sans-serif;max-width:800px;margin:40px auto;line-height:1.6}
+h1{color:#8a6d1a} img{max-width:100%} table{border-collapse:collapse}
+td,th{border:1px solid #ccc;padding:6px 10px}</style></head>
+<body>
+<h1>Hoards of the region: coin distribution</h1>
+<p>…region, hoard count, coin count, top-ruler/mint conclusions…</p>
+<img src="file:///tmp/chart_rulers.png">
+<img src="file:///tmp/chart_periods.png">
+</body></html>
+EOF
+chromium --headless=new --no-sandbox --disable-dev-shm-usage \
+  --print-to-pdf=/tmp/article.pdf --no-pdf-header-footer /tmp/article.html
+```
+Check: `ls -la /tmp/article.pdf` (must be >20 KB).
 
 ## Example result (real run: Sicily, 09.08.2026)
 
@@ -54,7 +146,7 @@ Request "analyze the hoards of Sicily" → summary:
 
 ```
 Region: Sicily (bbox 36.5–38.5N, 12.0–16.0E)
-Hoards with types: 17 | Coin types: 883 | No ruler: 855 (97%)
+Hoards: 21 (17 with types) | Coin types: 883 | No ruler: 855 (97%)
 
 Periods:
   Hellenistic (300–27 BC) — 865 (98%)
@@ -63,153 +155,42 @@ Periods:
 Rulers (the only identifiable one):
   Augustus — 28 types
 
-Largest hoards: Bagheria (166 types, chrr), Syracuse (163, chrr),
-  West Sicily (100, chrr), Licodia (76, chrr), Paterno (68, chrr)
+Largest hoards: Bagheria (166 types), Syracuse (163), West Sicily (100),
+  Licodia (76), Paterno (68)
 Conclusion: Sicilian hoards are Hellenistic (98%), almost all coins are civic
 issues without a ruler; Augustus reflects the transition under Roman rule.
 ```
 
-Charts: `/tmp/chart_periods.png` (period shares), `/tmp/chart_rulers.png`
-(top rulers). Article: `/tmp/article_sicily.pdf` (110 KB — title, periods,
-rulers, table of largest hoards, conclusions).
+Charts: `/tmp/chart_periods.png`, `/tmp/chart_rulers.png`. Article:
+`/tmp/article.pdf`. Artifacts from the reference run:
+/tmp/hoard_sicily.json, /tmp/chart_periods.png, /tmp/chart_rulers.png,
+/tmp/article_sicily.pdf.
 
-**Run artifacts (reference):** /tmp/hoard_sicily.json (full aggregation data),
-/tmp/chart_periods.png, /tmp/chart_rulers.png, /tmp/article_sicily.pdf —
-regenerated by each new session.
-
-**Important for the result:** never invent hoards/rulers — take all numbers
-from the real DB aggregation. If the region has few hoards (<5) — warn that
-the sample is too small for conclusions.
-
-## Data and connection
-
-Models (catalog/models.py):
-- `Hoard` — hoard: `findspot` (FK, coordinates), `coin_types` (M2M), `coin_count`,
-  `start_date`/`end_date`, `label`, `dataset` (chre/coinhoards/igch/chrr)
-- `Findspot` — find spot: `label`, `latitude`, `longitude`
-- `CoinType` — coin type: `authority` (FK, ruler/emperor), `mint` (FK),
-  `start_date`/`end_date` (years, negative = BC)
-- `Authority` — ruler: `label`
-
-Scale: 9,833 hoards (654 with findspot coordinates, 5,490 with linked types).
-
-DB connection — via Django ORM (venv `/home/kali/django6_env`, settings
-`numismatics.settings`, run from `/home/kali/numismatics`):
-```bash
-cd /home/kali/numismatics && source /home/kali/django6_env/bin/activate
-python3 -c "
-import django, os
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'numismatics.settings')
-django.setup()
-from catalog.models import Hoard
-..."
-```
-Dev DB mirror (for development without prod): 192.168.78.0:3306 (password in
-the project .env). Prod DB Reg.Cloud — ONLY from the prod server via SSH
-(`ssh deploy@canoanumis.org`), read the password from the prod .env, never pass
-it in the command line.
-
-## Steps
-
-### 1. Choose the region (bbox by findspot coordinates)
-The region is given by the user by name. For known regions — bbox
-(min/max latitude, min/max longitude). Examples:
-- Sicily: lat 36.5–38.5, lon 12.0–16.0 (21 hoards, 17 with types)
-- Southern Britain: lat 50.0–52.0, lon -5.0–1.5
-- Lusitania (Portugal): lat 37.0–42.0, lon -10.0–-6.0
-- Gaul: lat 43.0–51.0, lon -5.0–8.0
-
-Region hoard filter:
-```python
-from catalog.models import Hoard
-hoards = (Hoard.objects
-          .filter(findspot__latitude__gte=LAT_MIN, findspot__latitude__lte=LAT_MAX,
-                  findspot__longitude__gte=LON_MIN, findspot__longitude__lte=LON_MAX)
-          .exclude(coin_types__isnull=True))
-```
-
-### 2. Aggregation: by emperors and periods
-```python
-from collections import Counter
-au = Counter(); per = Counter(); total = 0
-for h in hoards.prefetch_related('coin_types__authority'):
-    for ct in h.coin_types.all():
-        total += 1
-        if ct.authority: au[ct.authority.label] += 1
-        if ct.start_date is not None:
-            y = ct.start_date
-            if y < -509: per['Archaic (before 500 BC)'] += 1
-            elif y < -400: per['Classical (500–400 BC)'] += 1
-            elif y < -300: per['Late Classical (400–300 BC)'] += 1
-            elif y < -27: per['Hellenistic (300–27 BC)'] += 1
-            elif y < 476: per['Roman era (27 BC–476 AD)'] += 1
-            else: per['Byzantine/Medieval (after 476 AD)'] += 1
-```
-Note: many hoard types have no authority (anonymous/civic issues) — count them
-in a separate "no ruler" group. Also output the number of region hoards and the
-total coins (coin_count is the declared coin count of a hoard — caution: often 0).
-
-### 3. Charts — SYSTEM matplotlib (not the venv!)
-**matplotlib is NOT installed in django6_env and CANNOT be installed** (PIL is a
-symlink to the system dir, Permission denied). Use the system python3:
-```bash
-python3 -c "
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-..."
-```
-System matplotlib 3.10.7 in /usr/lib/python3/dist-packages. Charts:
-1. Top-15 rulers (horizontal bar, log scale on large spread)
-2. Periods (bar with share % labels)
-3. Hoard distribution (scatter by findspot coordinates, size = coin count)
-Save as PNG at 150 dpi. Cyrillic: `plt.rcParams['font.family'] = 'DejaVu Sans'` (supports Cyrillic).
-
-### 4. PDF article — headless Chromium
-reportlab/weasyprint/wkhtmltopdf are NOT installed. Working path — HTML + Chromium:
-```bash
-cat > /tmp/article.html <<'EOF'
-<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
-<style>body{font-family:sans-serif;max-width:800px;margin:40px auto;line-height:1.6}
-h1{color:#8a6d1a} img{max-width:100%} table{border-collapse:collapse}
-td,th{border:1px solid #ccc;padding:6px 10px}</style></head>
-<body>
-<h1>Hoards of the region: coin distribution</h1>
-<p>…article text: region, hoard count, coin count, top-ruler conclusions…</p>
-<img src="file:///tmp/chart_rulers.png">
-<img src="file:///tmp/chart_periods.png">
-<img src="file:///tmp/chart_map.png">
-</body></html>
-EOF
-chromium --headless=new --no-sandbox --disable-dev-shm-usage \
-  --print-to-pdf=/tmp/article.pdf --no-pdf-header-footer /tmp/article.html
-```
-Check: `ls -la /tmp/article.pdf` (must be >20 KB).
+**Important:** never invent hoards/rulers — take all numbers from the real API
+responses. If the region has <5 hoards — warn that the sample is too small.
 
 ## Pitfalls
-- **Hellenistic regions: authority is almost always empty!** In Sicily 855 of 883
-  types (97%) have no ruler — these are civic issues. If the "no ruler" share
-  is >50%, build the distribution by mint (`ct.mint.label`) instead of authority
-- matplotlib: ONLY the system python3 (/usr/bin/python3), NOT
-  /home/kali/django6_env/bin/python
-- ORM: run from /home/kali/numismatics with the django6_env venv (settings
-  numismatics.settings); a script from /tmp needs
-  `sys.path.insert(0, '/home/kali/numismatics')`
-- prefetch_related('coin_types__authority') — without it N+1 queries on 5k+ types
-- Prod DB: only via SSH deploy@canoanumis.org; password from the prod .env via
-  `PW=$(sudo -n grep -oE 'DB_PASSWORD=[^ ]+' .env | cut -d= -f2)`; run heavy
-  queries on the prod server, not over an SSH tunnel
-- hoard coin_count is often 0 — count real coins by coin_types
+- **Hellenistic regions: authority is almost always null!** In Sicily 855 of 883
+  types (97%) have no ruler — civic issues. If the "no ruler" share >50%,
+  build the distribution by `mint` instead of `authority`
+- `mint` in API responses is the mint *name* (e.g. "Rome"); `mint_id` is the
+  numeric id (useful for grouping variants of the same mint)
+- `date_from`/`date_to` are years, negative = BC (e.g. -206 = 206 BC)
+- Per-hoard `type_count` comes free in the list response — use it for the
+  scatter chart without extra requests
+- Hoard `coin_count` (declared coins) is often 0 — use actual `coin_types`
+  length for real numbers
 - Do not draw empty groups (0 coins) in charts
-- Hoard datasets: many (chre) — Hellenistic hoards, (igch) — Greek; clarify
-  with the user which ones to include
+- Rate limit: pause 0.3–0.5 s between `/api/hoards/<id>/` calls; hoard counts
+  per region are small (tens), total requests are ~30–120 per analysis
+- On the reference machine (Kali): system python3 (/usr/bin/python3) has
+  matplotlib 3.10.7; the django venv does NOT (PIL symlink, Permission denied)
 
 ## Verification
 ```bash
-cd /home/kali/numismatics && source /home/kali/django6_env/bin/activate
-python3 -c "
-import django, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'numismatics.settings'); django.setup()
-from catalog.models import Hoard
-print('hoards with findspot:', Hoard.objects.exclude(findspot__isnull=True).count())
-"
+curl -s "https://canoanumis.org/api/hoards?lat_min=36.5&lat_max=38.5&lon_min=12&lon_max=16&per_page=5"
 ```
-Expected: 654. Chart: python3 with matplotlib → PNG exists. PDF: chromium → file >20 KB.
+Expected: HTTP 200, `count: 21`, each result has id/label/type_count.
+Detail: `curl -s https://canoanumis.org/api/hoards/26394/` → `coin_types[]`
+with authority/mint/date_from/date_to. Chart: python3 with matplotlib → PNG.
+PDF: chromium → file >20 KB.
