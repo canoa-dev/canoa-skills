@@ -12,89 +12,89 @@ metadata:
     related_skills: [canoa-api, django-numismatic-catalog]
 ---
 
-# Анализ кладов региона → распределение монет → графики → PDF-статья
+# Regional hoard analysis → coin distribution → charts → PDF article
 
-Перебор всех кладов, найденных в одном регионе (bbox по координатам), подсчёт
-распределения монет по императорам/правителям и периодам, построение графиков,
-генерация статьи в PDF. Рабочее окружение — /home/kali/numismatics (Django ORM).
+Iterate over all hoards found in one region (bounding box by coordinates), count
+the distribution of coins by emperors/rulers and periods, build charts, generate
+a PDF article. Working environment — /home/kali/numismatics (Django ORM).
 
-## Когда использовать
-- «проанализируй клады Сицилии/Британии/Лузитании…»
-- «построй распределение монет по императорам в кладах региона»
-- «сделай статью-отчёт по кладам области в PDF»
+## When to use
+- "analyze the hoards of Sicily/Britain/Lusitania…"
+- "build the coin distribution by emperors for hoards of a region"
+- "make a PDF article/report on the hoards of an area"
 
-## Использование
+## Usage
 
-Запрос пользователя → действия агента:
+User request → agent actions:
 
-1. **Пользователь**: «проанализируй клады Сицилии» →
-   Агент: определяет bbox Сицилии (lat 36.5–38.5, lon 12.0–16.0), запускает
-   ORM-скрипт (шаг 2), агрегирует (шаг 3), строит графики (шаг 4), выдаёт
-   сводку в чате. PDF — только по явной просьбе («сделай статью/PDF»).
+1. **User**: "analyze the hoards of Sicily" →
+   Agent: resolves the Sicily bbox (lat 36.5–38.5, lon 12.0–16.0), runs the
+   ORM script (step 2), aggregates (step 3), builds charts (step 4), returns a
+   chat summary. PDF only on explicit request ("make an article/PDF").
 
-2. **Пользователь**: «сделай PDF-статью по кладам Британии» →
-   Агент: bbox Южной Британии (lat 50.0–52.0, lon -5.0–1.5), полный конвейер
-   до PDF (шаги 2–5), файл /tmp/article.pdf + путь в ответе.
+2. **User**: "make a PDF article on the hoards of Britain" →
+   Agent: Southern Britain bbox (lat 50.0–52.0, lon -5.0–1.5), full pipeline
+   up to PDF (steps 2–5), file /tmp/article.pdf + path in the answer.
 
-3. **Пользователь**: «построй распределение монет по императорам в кладах
-   региона» → Агент: уточняет регион (bbox), агрегирует по authority;
-   если доля «без правителя» >50% — предупреждает и строит по mint.
+3. **User**: "build the coin distribution by emperors for hoards of a region" →
+   Agent: clarifies the region (bbox), aggregates by authority; if the share
+   of "no ruler" is >50% — warns and builds by mint instead.
 
-4. **Пользователь**: «сколько кладов найдено в Галлии и что в них» →
-   Агент: bbox Галлии (lat 43.0–51.0, lon -5.0–8.0), сводка: число кладов,
-   число типов, топ периодов/правителей/минтов, топ-клады таблицей.
+4. **User**: "how many hoards were found in Gaul and what is in them" →
+   Agent: Gaul bbox (lat 43.0–51.0, lon -5.0–8.0), summary: hoard count,
+   coin type count, top periods/rulers/mints, top hoards as a table.
 
-Порядок действий всегда: bbox → выборка кладов → агрегация → (графики) →
-(статья). Результат в чате — краткая сводка с цифрами; PDF и PNG — файлами
-с абсолютными путями (клиент — CLI, файлы читаются по пути).
+Action order is always: bbox → hoard selection → aggregation → (charts) →
+(article). Chat result — a concise summary with numbers; PDF and PNG — as files
+with absolute paths (CLI client, files are read by path).
 
-## Пример результата (реальный прогон: Сицилия, 09.08.2026)
+## Example result (real run: Sicily, 09.08.2026)
 
-Запрос «проанализируй клады Сицилии» → сводка:
+Request "analyze the hoards of Sicily" → summary:
 
 ```
-Регион: Сицилия (bbox 36.5–38.5N, 12.0–16.0E)
-Кладов с типами: 17 | Типов монет: 883 | Без правителя: 855 (97%)
+Region: Sicily (bbox 36.5–38.5N, 12.0–16.0E)
+Hoards with types: 17 | Coin types: 883 | No ruler: 855 (97%)
 
-Периоды:
-  Эллинизм (300–27 до н.э.) — 865 (98%)
-  Римская эпоха (27 до н.э.–476) — 18 (2%)
+Periods:
+  Hellenistic (300–27 BC) — 865 (98%)
+  Roman era (27 BC–476 AD) — 18 (2%)
 
-Правители (единственный идентифицируемый):
-  Augustus — 28 типов
+Rulers (the only identifiable one):
+  Augustus — 28 types
 
-Крупнейшие клады: Bagheria (166 типов, chrr), Syracuse (163, chrr),
+Largest hoards: Bagheria (166 types, chrr), Syracuse (163, chrr),
   West Sicily (100, chrr), Licodia (76, chrr), Paterno (68, chrr)
-Вывод: клады Сицилии — эллинистические (98%), почти все монеты — городские
-чеканы без правителя; Augustus отражает переход под римское управление.
+Conclusion: Sicilian hoards are Hellenistic (98%), almost all coins are civic
+issues without a ruler; Augustus reflects the transition under Roman rule.
 ```
 
-Графики: `/tmp/chart_periods.png` (доли периодов), `/tmp/chart_rulers.png`
-(топ правителей). Статья: `/tmp/article_sicily.pdf` (110 КБ — заголовок,
-периоды, правители, таблица крупнейших кладов, выводы).
+Charts: `/tmp/chart_periods.png` (period shares), `/tmp/chart_rulers.png`
+(top rulers). Article: `/tmp/article_sicily.pdf` (110 KB — title, periods,
+rulers, table of largest hoards, conclusions).
 
-**Файлы артефактов прогона (эталон):** /tmp/hoard_sicily.json (полные данные
-агрегации), /tmp/chart_periods.png, /tmp/chart_rulers.png,
-/tmp/article_sicily.pdf — перегенерируются каждой новой сессией.
+**Run artifacts (reference):** /tmp/hoard_sicily.json (full aggregation data),
+/tmp/chart_periods.png, /tmp/chart_rulers.png, /tmp/article_sicily.pdf —
+regenerated by each new session.
 
-**Важно для результата:** не выдумывать клады/правителей — все цифры брать
-из реальной агрегации по БД. Если регион с малым числом кладов (<5) —
-предупредить, что выборка мала для выводов.
+**Important for the result:** never invent hoards/rulers — take all numbers
+from the real DB aggregation. If the region has few hoards (<5) — warn that
+the sample is too small for conclusions.
 
-## Данные и подключение
+## Data and connection
 
-Модели (catalog/models.py):
-- `Hoard` — клад: `findspot` (FK, координаты), `coin_types` (M2M), `coin_count`,
+Models (catalog/models.py):
+- `Hoard` — hoard: `findspot` (FK, coordinates), `coin_types` (M2M), `coin_count`,
   `start_date`/`end_date`, `label`, `dataset` (chre/coinhoards/igch/chrr)
-- `Findspot` — место находки: `label`, `latitude`, `longitude`
-- `CoinType` — тип монеты: `authority` (FK, правитель/император), `mint` (FK),
-  `start_date`/`end_date` (годы, отрицательные = до н.э.)
-- `Authority` — правитель: `label`
+- `Findspot` — find spot: `label`, `latitude`, `longitude`
+- `CoinType` — coin type: `authority` (FK, ruler/emperor), `mint` (FK),
+  `start_date`/`end_date` (years, negative = BC)
+- `Authority` — ruler: `label`
 
-Объёмы: 9 833 клада (654 с координатами findspot, 5 490 со связанными типами).
+Scale: 9,833 hoards (654 with findspot coordinates, 5,490 with linked types).
 
-Подключение к БД — через Django ORM (venv `/home/kali/django6_env`, settings
-`numismatics.settings`, запускать из `/home/kali/numismatics`):
+DB connection — via Django ORM (venv `/home/kali/django6_env`, settings
+`numismatics.settings`, run from `/home/kali/numismatics`):
 ```bash
 cd /home/kali/numismatics && source /home/kali/django6_env/bin/activate
 python3 -c "
@@ -104,21 +104,22 @@ django.setup()
 from catalog.models import Hoard
 ..."
 ```
-Данные dev-зеркала БД (для разработки без прода): 192.168.78.0:3306 (пароль в
-.env проекта). Прод-БД Reg.Cloud — ТОЛЬКО с прод-сервера по SSH
-(`ssh deploy@canoanumis.org`), пароль читать из .env прода, не передавать в cmdline.
+Dev DB mirror (for development without prod): 192.168.78.0:3306 (password in
+the project .env). Prod DB Reg.Cloud — ONLY from the prod server via SSH
+(`ssh deploy@canoanumis.org`), read the password from the prod .env, never pass
+it in the command line.
 
-## Шаги
+## Steps
 
-### 1. Выбрать регион (bbox по координатам findspot)
-Регион задаётся пользователем по названию. Для известных регионов — bbox
-(мин/макс широта, мин/макс долгота). Примеры:
-- Сицилия: lat 36.5–38.5, lon 12.0–16.0 (21 клад, 17 с типами)
-- Южная Британия: lat 50.0–52.0, lon -5.0–1.5
-- Лузитания (Португалия): lat 37.0–42.0, lon -10.0–-6.0
-- Галлия: lat 43.0–51.0, lon -5.0–8.0
+### 1. Choose the region (bbox by findspot coordinates)
+The region is given by the user by name. For known regions — bbox
+(min/max latitude, min/max longitude). Examples:
+- Sicily: lat 36.5–38.5, lon 12.0–16.0 (21 hoards, 17 with types)
+- Southern Britain: lat 50.0–52.0, lon -5.0–1.5
+- Lusitania (Portugal): lat 37.0–42.0, lon -10.0–-6.0
+- Gaul: lat 43.0–51.0, lon -5.0–8.0
 
-Фильтр кладов региона:
+Region hoard filter:
 ```python
 from catalog.models import Hoard
 hoards = (Hoard.objects
@@ -127,7 +128,7 @@ hoards = (Hoard.objects
           .exclude(coin_types__isnull=True))
 ```
 
-### 2. Агрегация: по императорам и периодам
+### 2. Aggregation: by emperors and periods
 ```python
 from collections import Counter
 au = Counter(); per = Counter(); total = 0
@@ -137,34 +138,34 @@ for h in hoards.prefetch_related('coin_types__authority'):
         if ct.authority: au[ct.authority.label] += 1
         if ct.start_date is not None:
             y = ct.start_date
-            if y < -509: per['Архаика (до 500 до н.э.)'] += 1
-            elif y < -400: per['Классика (500–400 до н.э.)'] += 1
-            elif y < -300: per['Поздняя классика (400–300 до н.э.)'] += 1
-            elif y < -27: per['Эллинизм (300–27 до н.э.)'] += 1
-            elif y < 476: per['Римская эпоха (27 до н.э.–476)'] += 1
-            else: per['Византия/Средневековье (после 476)'] += 1
+            if y < -509: per['Archaic (before 500 BC)'] += 1
+            elif y < -400: per['Classical (500–400 BC)'] += 1
+            elif y < -300: per['Late Classical (400–300 BC)'] += 1
+            elif y < -27: per['Hellenistic (300–27 BC)'] += 1
+            elif y < 476: per['Roman era (27 BC–476 AD)'] += 1
+            else: per['Byzantine/Medieval (after 476 AD)'] += 1
 ```
-Учесть: многие типы в кладах — без authority (анонимные/городские), их считать
-в отдельную группу «без правителя». Также вывести число кладов региона и монет
-всего (coin_count — декларируемое число монет клада, осторожно: часто 0).
+Note: many hoard types have no authority (anonymous/civic issues) — count them
+in a separate "no ruler" group. Also output the number of region hoards and the
+total coins (coin_count is the declared coin count of a hoard — caution: often 0).
 
-### 3. Графики — СИСТЕМНЫЙ matplotlib (не venv!)
-**matplotlib в django6_env НЕ установлен и НЕ ставится** (PIL — симлинк на
-системный каталог, Permission denied). Использовать системный python3:
+### 3. Charts — SYSTEM matplotlib (not the venv!)
+**matplotlib is NOT installed in django6_env and CANNOT be installed** (PIL is a
+symlink to the system dir, Permission denied). Use the system python3:
 ```bash
 python3 -c "
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 ..."
 ```
-Системный matplotlib 3.10.7 в /usr/lib/python3/dist-packages. Графики:
-1. Топ-15 правителей (горизонтальный bar, log при большом разбросе)
-2. Периоды (bar с подписями долей %)
-3. Распределение монет по кладам (scatter по координатам findspot, размер = число монет)
-Сохранять в PNG 150 dpi. Кириллица: `plt.rcParams['font.family'] = 'DejaVu Sans'` (поддерживает кириллицу).
+System matplotlib 3.10.7 in /usr/lib/python3/dist-packages. Charts:
+1. Top-15 rulers (horizontal bar, log scale on large spread)
+2. Periods (bar with share % labels)
+3. Hoard distribution (scatter by findspot coordinates, size = coin count)
+Save as PNG at 150 dpi. Cyrillic: `plt.rcParams['font.family'] = 'DejaVu Sans'` (supports Cyrillic).
 
-### 4. PDF-статья — headless Chromium
-reportlab/weasyprint/wkhtmltopdf НЕ установлены. Рабочий путь — HTML + Chromium:
+### 4. PDF article — headless Chromium
+reportlab/weasyprint/wkhtmltopdf are NOT installed. Working path — HTML + Chromium:
 ```bash
 cat > /tmp/article.html <<'EOF'
 <!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
@@ -172,8 +173,8 @@ cat > /tmp/article.html <<'EOF'
 h1{color:#8a6d1a} img{max-width:100%} table{border-collapse:collapse}
 td,th{border:1px solid #ccc;padding:6px 10px}</style></head>
 <body>
-<h1>Клады региона: распределение монет</h1>
-<p>…текст статьи: регион, число кладов, число монет, выводы по топ-правителям…</p>
+<h1>Hoards of the region: coin distribution</h1>
+<p>…article text: region, hoard count, coin count, top-ruler conclusions…</p>
 <img src="file:///tmp/chart_rulers.png">
 <img src="file:///tmp/chart_periods.png">
 <img src="file:///tmp/chart_map.png">
@@ -182,28 +183,33 @@ EOF
 chromium --headless=new --no-sandbox --disable-dev-shm-usage \
   --print-to-pdf=/tmp/article.pdf --no-pdf-header-footer /tmp/article.html
 ```
-Проверка: `ls -la /tmp/article.pdf` (должен быть >20 КБ).
+Check: `ls -la /tmp/article.pdf` (must be >20 KB).
 
-## Питфоллы
-- **Эллинистические регионы: authority почти всегда пуст!** На Сицилии 855 из 883 типов (97%) без правителя — это городские чеканы. Если доля «без правителя» >50%, строить распределение по mint (`ct.mint.label`), а не по authority
-- matplotlib: ТОЛЬКО системный python3 (/usr/bin/python3), НЕ /home/kali/django6_env/bin/python
-- ORM: запускать из /home/kali/numismatics с venv django6_env (settings numismatics.settings); скрипт из /tmp требует `sys.path.insert(0, '/home/kali/numismatics')`
-- prefetch_related('coin_types__authority') — без него N+1 запросов на 5k+ типов
-- Прод-БД: только через SSH deploy@canoanumis.org; пароль из .env прода через
-  `PW=$(sudo -n grep -oE 'DB_PASSWORD=[^ ]+' .env | cut -d= -f2)`; тяжёлые запросы
-  гонять на проде, а не по SSH-туннелю
-- coin_count у кладов часто 0 — реальное число монет считать по coin_types
-- Пустые группы (0 монет) в графиках не рисовать
-- Файлы кладов: многие датасеты (chre) — клады эллинизма, (igch) — греческие;
-  уточнять у пользователя, какие включать
+## Pitfalls
+- **Hellenistic regions: authority is almost always empty!** In Sicily 855 of 883
+  types (97%) have no ruler — these are civic issues. If the "no ruler" share
+  is >50%, build the distribution by mint (`ct.mint.label`) instead of authority
+- matplotlib: ONLY the system python3 (/usr/bin/python3), NOT
+  /home/kali/django6_env/bin/python
+- ORM: run from /home/kali/numismatics with the django6_env venv (settings
+  numismatics.settings); a script from /tmp needs
+  `sys.path.insert(0, '/home/kali/numismatics')`
+- prefetch_related('coin_types__authority') — without it N+1 queries on 5k+ types
+- Prod DB: only via SSH deploy@canoanumis.org; password from the prod .env via
+  `PW=$(sudo -n grep -oE 'DB_PASSWORD=[^ ]+' .env | cut -d= -f2)`; run heavy
+  queries on the prod server, not over an SSH tunnel
+- hoard coin_count is often 0 — count real coins by coin_types
+- Do not draw empty groups (0 coins) in charts
+- Hoard datasets: many (chre) — Hellenistic hoards, (igch) — Greek; clarify
+  with the user which ones to include
 
-## Верификация
+## Verification
 ```bash
 cd /home/kali/numismatics && source /home/kali/django6_env/bin/activate
 python3 -c "
 import django, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'numismatics.settings'); django.setup()
 from catalog.models import Hoard
-print('кладов с findspot:', Hoard.objects.exclude(findspot__isnull=True).count())
+print('hoards with findspot:', Hoard.objects.exclude(findspot__isnull=True).count())
 "
 ```
-Ожидаемо: 654. График: python3 с matplotlib → PNG существует. PDF: chromium → файл >20 КБ.
+Expected: 654. Chart: python3 with matplotlib → PNG exists. PDF: chromium → file >20 KB.
