@@ -18,6 +18,7 @@ see the skills for how to use it.
 | Skill | What it does |
 |---|---|
 | [`skills/canoa-api/`](skills/canoa-api/SKILL.md) | How to use the CANOA API for numismatics, history, education — endpoints, filters, recipes for kids, hobbyists and researchers, citation and licensing rules |
+| [`skills/canoa-hoard-analysis/`](skills/canoa-hoard-analysis/SKILL.md) | Analyze coin hoards of a region: distribution by emperors and periods, charts (matplotlib), PDF article (headless Chromium) |
 
 ## Installation
 
