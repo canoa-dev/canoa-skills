@@ -1,7 +1,7 @@
 ---
 name: canoa-api
 description: Use when researching ancient coins via the CANOA API.
-version: 1.0.6
+version: 1.1.0
 author: CANOA (canoanumis.org)
 license: CC BY 4.0
 platforms: [linux, macos, windows]
@@ -35,7 +35,18 @@ Type data — ODbL (source numismatics.org); images belong to the holding museum
 | `/api/search?q=<text>` | autocomplete: rulers, mints, denominations, coins |
 | `/api/coins` | coin list with filters (see below) |
 | `/api/coins/<slug>/` | coin card (e.g. `/api/coins/ric-i-second-edition-nero-1/`) |
-| `/api/coin/<id>/` | card by numeric id |
+| `/api/coin/<id>/` | card by numeric id (+ `specimen_count`, `specimens_url`) |
+| `/api/coins/<id>/specimens` | museum specimens with metrics: weight, diameter, axis, collection |
+| `/api/coins?hoard_id=<id>` | coin types of a specific hoard |
+| `/api/hoards` | hoards in a region — bbox: `lat_min/lat_max/lon_min/lon_max` (+ q, dataset, page, per_page) |
+| `/api/hoards/<id>/` | hoard detail with its coin types (authority, mint, dates) |
+| `/api/authorities` | full list of rulers/emperors with type counts (q, has_types, page/per_page) |
+| `/api/authorities/<id>/` | ruler detail + his coin types (paged) |
+| `/api/mints` | full list of mints with coordinates and type counts |
+| `/api/regions` | regions/civilizations with type counts |
+| `/api/dies` | coin dies (Republican Die Project); filters q, die_type |
+| `/api/denominations`, `/api/materials` | full reference lists with type counts |
+| `/api/stats` | catalog statistics (types, specimens, hoards, mints, authorities…) |
 | `/api/filter-options?field=mint` | filter reference values (mint, authority, denomination, material) |
 | `/api/mints.geojson` | mints as GeoJSON (filters: authority, denomination, material, dataset, q, has_coins) |
 | `/llms.txt`, `/llms-full.txt` | documentation for LLM/agents |
@@ -113,7 +124,38 @@ print("exported:", first["count"])
 - Negative `date_from/date_to` = years BC (e.g. -27 = 27 BC)
 - `label_ru` fields in responses — Russian labels (material/denomination/ruler) for Russian-language publications
 
-### 4. Citation and licenses (required for publications)
+### 4. Research: hoards of a region
+```python
+import urllib.request, json
+API = "https://canoanumis.org"
+# 1. hoards of Sicily (bbox)
+lst = json.load(urllib.request.urlopen(
+    API + "/api/hoards?lat_min=36.5&lat_max=38.5&lon_min=12&lon_max=16"))
+print("hoards:", lst["count"])
+# 2. per hoard: coin types (authority, mint, dates) — pause 0.3 s between calls
+d = json.load(urllib.request.urlopen(API + "/api/hoards/" + str(lst["results"][0]["id"]) + "/"))
+for ct in d["coin_types"][:5]:
+    print(ct["label"], "|", ct["authority"], "|", ct["mint"], "|", ct["date_from"], "-", ct["date_to"])
+```
+For the whole region iterate hoard details and aggregate by `authority` /
+`mint` / period (`date_from`). Note: Hellenistic hoards mostly have `authority:
+null` (civic issues) — aggregate by `mint` in that case. For the full pipeline
+(aggregation → charts → PDF article) use the canoa-hoard-analysis skill.
+
+### 5. Research: metrology (weights of a type)
+```python
+import urllib.request, json, statistics
+d = json.load(urllib.request.urlopen(
+    "https://canoanumis.org/api/coins/168481/specimens?per_page=100"))
+w = [s["weight"] for s in d["results"] if s["weight"]]
+print("specimens:", d["count"], "| mean weight:",
+      round(statistics.mean(w), 2) if w else "-", "g | n with weight:", len(w))
+```
+`/api/coins/<id>/specimens` gives weight/diameter/axis per museum specimen —
+enough for metrological analysis. `/api/stats` gives catalog totals for the
+article header ("the catalog contains 128,862 types and 540,692 specimens").
+
+### 6. Citation and licenses (required for publications)
 - Types/data: ODbL 1.0 — credit CANOA (canoanumis.org) and numismatics.org
 - Images: © holding museum, collection license in /LICENSES.md (many are NC — non-commercial only)
 - Standard attribution: "Data: CANOA (canoanumis.org), ODbL; image: © <museum>"
