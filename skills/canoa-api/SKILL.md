@@ -1,7 +1,7 @@
 ---
 name: canoa-api
 description: Use when researching ancient coins via the CANOA API.
-version: 1.1.0
+version: 1.2.0
 author: CANOA (canoanumis.org)
 license: CC BY 4.0
 platforms: [linux, macos, windows]
@@ -33,7 +33,7 @@ Type data — ODbL (source numismatics.org); images belong to the holding museum
 | Endpoint | Returns |
 |---|---|
 | `/api/search?q=<text>` | autocomplete: rulers, mints, denominations, coins |
-| `/api/coins` | coin list with filters (see below) |
+| `/api/coins` | coin list with filters (see below); every item has `specimen_count` |
 | `/api/coins/<slug>/` | coin card (e.g. `/api/coins/ric-i-second-edition-nero-1/`) |
 | `/api/coin/<id>/` | card by numeric id (+ `specimen_count`, `specimens_url`) |
 | `/api/coins/<id>/specimens` | museum specimens with metrics: weight, diameter, axis, collection |
@@ -47,6 +47,7 @@ Type data — ODbL (source numismatics.org); images belong to the holding museum
 | `/api/dies` | coin dies (Republican Die Project); filters q, die_type |
 | `/api/denominations`, `/api/materials` | full reference lists with type counts |
 | `/api/stats` | catalog statistics (types, specimens, hoards, mints, authorities…) |
+| `/api/crawlers?days=<n>` | crawler/bot traffic stats for a period: categories, HTTP codes, top paths/IPs/user agents; `days` (1–14, default 7) or `from`/`to` (YYYY-MM-DD) |
 | `/api/filter-options?field=mint` | filter reference values (mint, authority, denomination, material) |
 | `/api/mints.geojson` | mints as GeoJSON (filters: authority, denomination, material, dataset, q, has_coins) |
 | `/llms.txt`, `/llms-full.txt` | documentation for LLM/agents |
@@ -59,7 +60,7 @@ Type data — ODbL (source numismatics.org); images belong to the holding museum
 - `dataset` — ocre, crro, pella, iris, sco, pco, bigr, agco, aod, lco, coi, cm, do_byzant, oscar, chre, chrr, coinhoards, iacb
 - `has_image` — `1` (with photos only) / `0` (all)
 - `date_from`, `date_to` — years: coins whose period overlaps the range (negative = BC)
-- `sort` — name, -name, date, -date
+- `sort` — name, -name, date, -date, specimens, -specimens (by museum specimen count: most collected first / rarest first)
 - `page`, `per_page` — pagination (per_page max 100)
 - `format=html` — the same list as plain HTML (for JS-free linking)
 
@@ -84,6 +85,13 @@ curl "https://canoanumis.org/api/filter-options?field=authority"
 
 # Autocomplete:
 curl "https://canoanumis.org/api/search?q=trajan"
+
+# Most collected types (by museum specimen count, most common first):
+curl "https://canoanumis.org/api/coins?sort=specimens&per_page=5"
+# (sort=-specimens — rarest first; every item has specimen_count)
+
+# Bot/crawler traffic for the last week (crawl planning):
+curl "https://canoanumis.org/api/crawlers?days=7"
 
 # Mints as GeoJSON (for maps):
 curl "https://canoanumis.org/api/mints.geojson?has_coins=1"
@@ -154,6 +162,9 @@ print("specimens:", d["count"], "| mean weight:",
 `/api/coins/<id>/specimens` gives weight/diameter/axis per museum specimen —
 enough for metrological analysis. `/api/stats` gives catalog totals for the
 article header ("the catalog contains 128,862 types and 540,692 specimens").
+To pick the most-studied types of a ruler/period first, sort by specimen
+count: `/api/coins?authority=<uri>&sort=specimens&per_page=100` — each item
+has `specimen_count`, so no extra specimens calls are needed for ranking.
 
 ### 6. Citation and licenses (required for publications)
 - Types/data: ODbL 1.0 — credit CANOA (canoanumis.org) and numismatics.org
